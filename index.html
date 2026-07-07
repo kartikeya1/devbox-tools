@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Devbox · Developer Tools</title>
-  <meta name="description" content="A fast, offline-friendly toolkit: JSON formatter, AES encryption, cURL unescaper and live HTML previewer." />
+  <meta name="description" content="A fast, offline-friendly toolkit: JSON formatter, AES encryption, cURL unescaper, live HTML previewer and JWT maker." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
   <style>
@@ -288,6 +288,61 @@
       .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 40; display: none; }
       .backdrop.show { display: block; }
     }
+
+    /* ---------- JWT Maker ---------- */
+    select {
+      width: 100%;
+      font-family: var(--font);
+      font-size: 13.5px;
+      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+    .jwt-token {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.7;
+      word-break: break-all;
+    }
+    .jwt-token .seg-header { color: #7dd3fc; }
+    .jwt-token .seg-payload { color: #86efac; }
+    .jwt-token .seg-signature { color: #fca5a5; }
+    .jwt-token .seg-dot { color: var(--text-faint); }
+    [data-theme="light"] .jwt-token .seg-header { color: #0369a1; }
+    [data-theme="light"] .jwt-token .seg-payload { color: #15803d; }
+    [data-theme="light"] .jwt-token .seg-signature { color: #b91c1c; }
+
+    .jwt-tests { display: flex; flex-direction: column; gap: 8px; }
+    .jwt-test {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: var(--radius-sm);
+      background: var(--surface-2); border-left: 3px solid var(--border-strong);
+    }
+    .jwt-test.pass { border-left-color: #22c55e; }
+    .jwt-test.fail { border-left-color: #f87171; }
+    .jwt-test .tick {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 12px; font-weight: 700;
+    }
+    .jwt-test.pass .tick { background: rgba(34,197,94,.16); color: #22c55e; }
+    .jwt-test.fail .tick { background: rgba(248,113,113,.16); color: #f87171; }
+    .jwt-test .t-name { font-size: 13.5px; font-weight: 500; }
+    .jwt-test .t-detail { font-size: 12px; color: var(--text-faint); font-family: var(--mono); margin-top: 2px; }
+    .jwt-stats { display: flex; gap: 26px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .jwt-stat-value { font-size: 24px; font-weight: 700; line-height: 1; }
+    .jwt-stat-value.pass { color: #22c55e; }
+    .jwt-stat-value.fail { color: #f87171; }
+    .jwt-stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -322,6 +377,10 @@
     <button class="nav-item" data-view="html">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       HTML Previewer
+    </button>
+    <button class="nav-item" data-view="jwt">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M11.5 11.5 21 2"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+      JWT Maker
     </button>
 
     <div class="sidebar-footer">
@@ -477,6 +536,101 @@
         </div>
       </section>
 
+      <!-- JWT -->
+      <section class="view" id="view-jwt">
+        <div class="page-head">
+          <h2>JWT Maker</h2>
+          <p>Generate and sign JSON Web Tokens (HS256 / HS384 / HS512) entirely in your browser using the Web Crypto API — no data leaves the page.</p>
+        </div>
+
+        <div class="card">
+          <h3>Header</h3>
+          <div class="grid-2">
+            <div class="field">
+              <label for="jwtAlg">Algorithm</label>
+              <select id="jwtAlg">
+                <option value="HS256" selected>HS256 (HMAC SHA-256)</option>
+                <option value="HS384">HS384 (HMAC SHA-384)</option>
+                <option value="HS512">HS512 (HMAC SHA-512)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="jwtTyp">Type</label>
+              <input type="text" id="jwtTyp" value="JWT" placeholder="JWT" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Payload</h3>
+          <div class="field">
+            <label for="jwtBroker">Broker name</label>
+            <input type="text" id="jwtBroker" placeholder="my-broker" value="acme-trading" />
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="jwtIat">Issued at (iat)</label>
+              <input type="text" id="jwtIat" placeholder="Leave empty for current time" />
+              <p class="hint">Accepts a date string or a Unix timestamp.</p>
+            </div>
+            <div class="field">
+              <label for="jwtExp">Expiration (exp)</label>
+              <input type="text" id="jwtExp" placeholder="2026-12-31 23:59:59" value="2026-12-31 23:59:59" />
+              <p class="hint">YYYY-MM-DD [HH:MM:SS], DD/MM/YYYY, YYYY/MM/DD, or Unix timestamp.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Secret <span class="tag">HMAC key</span></h3>
+          <div class="field">
+            <label for="jwtSecret">Secret key</label>
+            <input type="password" id="jwtSecret" placeholder="Enter a secure secret (32+ chars recommended)" value="super-secret-key-for-jwt-signing!" />
+            <p class="hint">Signing happens locally in your browser — the secret never leaves the page. Never share it publicly.</p>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="generateJWT()">Generate JWT</button>
+          <button class="btn btn-ghost" onclick="loadSampleJWT()">Load Sample</button>
+          <button class="btn btn-ghost" onclick="runJWTTests()">Run Tests</button>
+        </div>
+
+        <div class="card" id="jwtOutputCard" style="display:none;">
+          <div class="out-head">
+            <label>Generated token</label>
+            <button class="copy-btn" onclick="copyJWT()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy
+            </button>
+          </div>
+          <div class="jwt-token" id="jwtTokenBox"><span class="seg-header" id="jwtSegHeader"></span><span class="seg-dot">.</span><span class="seg-payload" id="jwtSegPayload"></span><span class="seg-dot">.</span><span class="seg-signature" id="jwtSegSignature"></span></div>
+          <div class="grid-2" style="margin-top:18px;">
+            <div class="field" style="margin:0;">
+              <label>Decoded header</label>
+              <pre class="output" id="jwtDecodedHeader"></pre>
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Decoded payload</label>
+              <pre class="output" id="jwtDecodedPayload"></pre>
+            </div>
+          </div>
+          <div class="field" style="margin:16px 0 0;">
+            <label>Expiration (local time)</label>
+            <pre class="output" id="jwtExpReadable"></pre>
+          </div>
+        </div>
+
+        <div class="card" id="jwtTestCard" style="display:none;">
+          <h3>Test results <span class="tag">self-check</span></h3>
+          <div class="jwt-tests" id="jwtTestResults"></div>
+          <div class="jwt-stats">
+            <div><div class="jwt-stat-value pass" id="jwtPassCount">0</div><div class="jwt-stat-label">Passed</div></div>
+            <div><div class="jwt-stat-value fail" id="jwtFailCount">0</div><div class="jwt-stat-label">Failed</div></div>
+          </div>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -505,7 +659,7 @@
 
     // Deep-link support
     const initial = location.hash.replace('#', '');
-    if (['json','aes','curl','html'].includes(initial)) showView(initial);
+    if (['json','aes','curl','html','jwt'].includes(initial)) showView(initial);
 
     /* ---------------- Theme ---------------- */
     const root = document.documentElement;
@@ -709,6 +863,211 @@
     function clearHtml() {
       htmlInput.value = '';
       updatePreview();
+    }
+
+    /* ============================================================
+       JWT Maker  (logic ported verbatim from the standalone
+       jwt-maker tool; uses the Web Crypto API, no dependencies)
+       ============================================================ */
+
+    // Parse a human-readable expiration date into a Unix timestamp.
+    function parseExpiration(expInput) {
+      const asNumber = Number(expInput);
+      if (!isNaN(asNumber) && expInput.trim().match(/^\d+$/)) {
+        return asNumber;
+      }
+      const formats = [
+        { regex: /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/, parse: m => new Date(m[1], m[2]-1, m[3], m[4], m[5], m[6]) },
+        { regex: /^(\d{4})-(\d{2})-(\d{2})$/, parse: m => new Date(m[1], m[2]-1, m[3]) },
+        { regex: /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/, parse: m => new Date(m[3], m[2]-1, m[1], m[4], m[5], m[6]) },
+        { regex: /^(\d{2})\/(\d{2})\/(\d{4})$/, parse: m => new Date(m[3], m[2]-1, m[1]) },
+        { regex: /^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/, parse: m => new Date(m[1], m[2]-1, m[3], m[4], m[5], m[6]) },
+        { regex: /^(\d{4})\/(\d{2})\/(\d{2})$/, parse: m => new Date(m[1], m[2]-1, m[3]) },
+      ];
+      const trimmed = expInput.trim();
+      for (const fmt of formats) {
+        const match = trimmed.match(fmt.regex);
+        if (match) {
+          const date = fmt.parse(match);
+          if (!isNaN(date.getTime())) return Math.floor(date.getTime() / 1000);
+        }
+      }
+      throw new Error(
+        `Could not parse expiration date: '${expInput}'\n` +
+        `Supported formats: YYYY-MM-DD HH:MM:SS, YYYY-MM-DD, DD/MM/YYYY, or Unix timestamp`
+      );
+    }
+
+    // Base64URL encode (no padding, URL-safe).
+    function base64urlEncode(data) {
+      let str;
+      if (typeof data === 'string') {
+        str = btoa(unescape(encodeURIComponent(data)));
+      } else {
+        str = btoa(String.fromCharCode(...new Uint8Array(data)));
+      }
+      return str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function getHashAlgorithm(alg) {
+      const algMap = { 'HS256': 'SHA-256', 'HS384': 'SHA-384', 'HS512': 'SHA-512' };
+      return algMap[alg] || 'SHA-256';
+    }
+
+    async function createJWT(header, payload, secret) {
+      const encodedHeader = base64urlEncode(JSON.stringify(header));
+      const encodedPayload = base64urlEncode(JSON.stringify(payload));
+      const signingInput = `${encodedHeader}.${encodedPayload}`;
+
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(secret);
+      const hashAlg = getHashAlgorithm(header.alg);
+
+      const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: hashAlg }, false, ['sign']);
+      const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(signingInput));
+      const encodedSignature = base64urlEncode(signature);
+
+      return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+    }
+
+    async function verifyJWT(token, secret, expectedAlg = 'HS256') {
+      const parts = token.split('.');
+      if (parts.length !== 3) throw new Error('Invalid token format');
+
+      const [encodedHeader, encodedPayload, encodedSignature] = parts;
+      const signingInput = `${encodedHeader}.${encodedPayload}`;
+      const header = JSON.parse(atob(encodedHeader.replace(/-/g, '+').replace(/_/g, '/')));
+
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(secret);
+      const hashAlg = getHashAlgorithm(header.alg);
+      const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: hashAlg }, false, ['verify']);
+
+      const sigPadded = encodedSignature.replace(/-/g, '+').replace(/_/g, '/');
+      const sigDecoded = atob(sigPadded);
+      const sigBytes = new Uint8Array(sigDecoded.length);
+      for (let i = 0; i < sigDecoded.length; i++) sigBytes[i] = sigDecoded.charCodeAt(i);
+
+      const isValid = await crypto.subtle.verify('HMAC', key, sigBytes, encoder.encode(signingInput));
+      if (!isValid) throw new Error('Invalid signature');
+
+      const payloadDecoded = JSON.parse(
+        decodeURIComponent(escape(atob(encodedPayload.replace(/-/g, '+').replace(/_/g, '/'))))
+      );
+      return { header, payload: payloadDecoded };
+    }
+
+    let generatedJWT = '';
+    async function generateJWT() {
+      try {
+        const algorithm = document.getElementById('jwtAlg').value;
+        const type = document.getElementById('jwtTyp').value || 'JWT';
+        const broker = document.getElementById('jwtBroker').value;
+        const iatInput = document.getElementById('jwtIat').value.trim();
+        const expInput = document.getElementById('jwtExp').value.trim();
+        const secret = document.getElementById('jwtSecret').value;
+
+        if (!broker) { toast('Please enter a broker name', true); return; }
+        if (!expInput) { toast('Please enter an expiration date', true); return; }
+        if (!secret) { toast('Please enter a secret key', true); return; }
+
+        const iat = iatInput ? parseExpiration(iatInput) : Math.floor(Date.now() / 1000);
+        const exp = parseExpiration(expInput);
+
+        const header = { alg: algorithm, typ: type };
+        const payload = { broker, iat, exp };
+
+        generatedJWT = await createJWT(header, payload, secret);
+
+        const parts = generatedJWT.split('.');
+        document.getElementById('jwtSegHeader').textContent = parts[0];
+        document.getElementById('jwtSegPayload').textContent = parts[1];
+        document.getElementById('jwtSegSignature').textContent = parts[2];
+
+        document.getElementById('jwtDecodedHeader').innerHTML = highlightJSON(JSON.stringify(header, null, 2));
+        document.getElementById('jwtDecodedPayload').innerHTML = highlightJSON(JSON.stringify(payload, null, 2));
+        document.getElementById('jwtExpReadable').textContent = new Date(exp * 1000).toLocaleString();
+
+        document.getElementById('jwtOutputCard').style.display = 'block';
+        toast('JWT generated');
+      } catch (error) {
+        toast('Error: ' + error.message, true);
+        console.error(error);
+      }
+    }
+
+    function copyJWT() { copyText(generatedJWT); }
+
+    function loadSampleJWT() {
+      document.getElementById('jwtAlg').value = 'HS256';
+      document.getElementById('jwtTyp').value = 'JWT';
+      document.getElementById('jwtBroker').value = 'mega-trade-corp';
+      document.getElementById('jwtIat').value = '';
+      document.getElementById('jwtExp').value = '2026-12-31 23:59:59';
+      document.getElementById('jwtSecret').value = 'my-super-secure-32-character-key!';
+      generateJWT();
+    }
+
+    // Self-check suite (ported verbatim) — proves the crypto path end to end.
+    const jwtTestCases = [
+      { name: 'Parse YYYY-MM-DD HH:MM:SS format', detail: '2026-12-31 23:59:59', test: async () => {
+          const r = parseExpiration('2026-12-31 23:59:59'); const d = new Date(r * 1000);
+          return d.getFullYear() === 2026 && d.getMonth() === 11 && d.getDate() === 31; } },
+      { name: 'Parse YYYY-MM-DD format', detail: '2026-06-15', test: async () => {
+          const r = parseExpiration('2026-06-15'); const d = new Date(r * 1000);
+          return d.getFullYear() === 2026 && d.getMonth() === 5 && d.getDate() === 15; } },
+      { name: 'Parse DD/MM/YYYY format', detail: '25/12/2026', test: async () => {
+          const r = parseExpiration('25/12/2026'); const d = new Date(r * 1000);
+          return d.getFullYear() === 2026 && d.getMonth() === 11 && d.getDate() === 25; } },
+      { name: 'Parse Unix timestamp', detail: '1770710399', test: async () => parseExpiration('1770710399') === 1770710399 },
+      { name: 'Generate valid JWT with HS256', detail: 'HS256 algorithm', test: async () => {
+          const t = await createJWT({ alg: 'HS256', typ: 'JWT' }, { broker: 'test', iat: 1700000000, exp: 1800000000 }, 'test-secret-key-32-chars-long!!');
+          const p = t.split('.'); return p.length === 3 && p[0].length > 0 && p[1].length > 0 && p[2].length > 0; } },
+      { name: 'Generate valid JWT with HS384', detail: 'HS384 algorithm', test: async () => {
+          const t = await createJWT({ alg: 'HS384', typ: 'JWT' }, { broker: 'test', iat: 1700000000, exp: 1800000000 }, 'test-secret-key-32-chars-long!!');
+          return t.split('.').length === 3; } },
+      { name: 'Generate valid JWT with HS512', detail: 'HS512 algorithm', test: async () => {
+          const t = await createJWT({ alg: 'HS512', typ: 'JWT' }, { broker: 'test', iat: 1700000000, exp: 1800000000 }, 'test-secret-key-32-chars-long!!');
+          return t.split('.').length === 3; } },
+      { name: 'Verify generated token', detail: 'Create and verify round-trip', test: async () => {
+          const secret = 'verification-secret-key-32chars!';
+          const t = await createJWT({ alg: 'HS256', typ: 'JWT' }, { broker: 'verify-test', iat: 1700000000, exp: 1800000000 }, secret);
+          const decoded = await verifyJWT(t, secret); return decoded.payload.broker === 'verify-test'; } },
+      { name: 'Detect invalid signature', detail: 'Wrong secret should fail', test: async () => {
+          const t = await createJWT({ alg: 'HS256', typ: 'JWT' }, { broker: 'test', iat: 1700000000, exp: 1800000000 }, 'correct-secret-key-32-chars!!!');
+          try { await verifyJWT(t, 'wrong-secret-key-32-characters!!'); return false; }
+          catch (e) { return e.message === 'Invalid signature'; } } },
+      { name: 'Handle special characters in payload', detail: 'Unicode and emoji support', test: async () => {
+          const secret = 'special-chars-secret-key-32char!';
+          const t = await createJWT({ alg: 'HS256', typ: 'JWT' }, { broker: 'test-™-émoji-🔐', iat: 1700000000, exp: 1800000000 }, secret);
+          const decoded = await verifyJWT(t, secret); return decoded.payload.broker === 'test-™-émoji-🔐'; } },
+      { name: 'Reject invalid date format', detail: 'invalid-date should throw', test: async () => {
+          try { parseExpiration('invalid-date'); return false; } catch (e) { return e.message.includes('Could not parse'); } } },
+      { name: 'Parse YYYY/MM/DD format', detail: '2026/07/04', test: async () => {
+          const r = parseExpiration('2026/07/04'); const d = new Date(r * 1000);
+          return d.getFullYear() === 2026 && d.getMonth() === 6 && d.getDate() === 4; } },
+    ];
+
+    async function runJWTTests() {
+      const box = document.getElementById('jwtTestResults');
+      box.innerHTML = '';
+      let passed = 0, failed = 0;
+      for (const tc of jwtTestCases) {
+        let ok = false, detail = tc.detail;
+        try { ok = await tc.test(); if (!ok) detail = 'Test returned false'; }
+        catch (e) { ok = false; detail = 'Error: ' + e.message; }
+        const item = document.createElement('div');
+        item.className = 'jwt-test ' + (ok ? 'pass' : 'fail');
+        item.innerHTML = '<div class="tick">' + (ok ? '✓' : '✗') + '</div><div><div class="t-name"></div><div class="t-detail"></div></div>';
+        item.querySelector('.t-name').textContent = tc.name;
+        item.querySelector('.t-detail').textContent = detail;
+        box.appendChild(item);
+        ok ? passed++ : failed++;
+      }
+      document.getElementById('jwtPassCount').textContent = passed;
+      document.getElementById('jwtFailCount').textContent = failed;
+      document.getElementById('jwtTestCard').style.display = 'block';
+      toast(failed === 0 ? `All ${passed} tests passed` : `${failed} test(s) failed`, failed !== 0);
     }
   </script>
 </body>

@@ -3,3 +3,12 @@ node_modules/
 .vercel
 .claude/
 *.log
+
+# Python (cli/) local artifacts
+venv/
+__pycache__/
+*.pyc
+
+# Local env / secrets (never commit)
+.env
+.env.*
