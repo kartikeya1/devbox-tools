@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Devbox · Developer Tools</title>
+  <meta name="description" content="A fast, offline-friendly toolkit: JSON formatter, AES encryption, cURL unescaper and live HTML previewer." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+  <style>
+    :root {
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-soft: rgba(99, 102, 241, 0.14);
+      --radius: 14px;
+      --radius-sm: 9px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --mono: "SF Mono", ui-monospace, "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+      --sidebar-w: 264px;
+      --shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.12);
+      --transition: .18s cubic-bezier(.4,0,.2,1);
+    }
+
+    [data-theme="dark"] {
+      --bg: #0b0d12;
+      --bg-grad: radial-gradient(1200px 600px at 80% -10%, rgba(99,102,241,.12), transparent 60%);
+      --surface: #14171f;
+      --surface-2: #1b1f2a;
+      --surface-3: #232838;
+      --border: #262b38;
+      --border-strong: #333a4d;
+      --text: #e7eaf0;
+      --text-dim: #9aa3b5;
+      --text-faint: #6b7488;
+      --code-bg: #0e1017;
+    }
+
+    [data-theme="light"] {
+      --bg: #f4f5f8;
+      --bg-grad: radial-gradient(1200px 600px at 80% -10%, rgba(99,102,241,.10), transparent 60%);
+      --surface: #ffffff;
+      --surface-2: #f7f8fb;
+      --surface-3: #eef0f5;
+      --border: #e4e7ee;
+      --border-strong: #d4d9e3;
+      --text: #1a1d26;
+      --text-dim: #5b6373;
+      --text-faint: #8b93a4;
+      --code-bg: #f6f7f9;
+      --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      background-image: var(--bg-grad);
+      background-attachment: fixed;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ---------- Sidebar ---------- */
+    .sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 22px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 6px 10px 20px;
+    }
+    .brand .logo {
+      width: 38px; height: 38px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      display: grid; place-items: center;
+      font-size: 20px;
+      box-shadow: 0 4px 14px rgba(99,102,241,.4);
+    }
+    .brand h1 { font-size: 17px; margin: 0; letter-spacing: -.02em; }
+    .brand span { font-size: 12px; color: var(--text-faint); }
+
+    .nav-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-faint);
+      padding: 6px 12px;
+      margin-top: 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text-dim);
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      transition: background var(--transition), color var(--transition);
+    }
+    .nav-item:hover { background: var(--surface-3); color: var(--text); }
+    .nav-item.active { background: var(--accent-soft); color: var(--accent); }
+    .nav-item .ic { width: 18px; height: 18px; flex-shrink: 0; }
+    .nav-item.active .ic { stroke: var(--accent); }
+
+    .sidebar-footer { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+
+    .theme-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border-radius: var(--radius-sm);
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-dim); font-size: 13px; cursor: pointer;
+      transition: background var(--transition);
+    }
+    .theme-toggle:hover { background: var(--surface-3); }
+
+    /* ---------- Main ---------- */
+    .main { flex: 1; min-width: 0; overflow-y: auto; height: 100vh; }
+    .main-inner { max-width: 1080px; margin: 0 auto; padding: 40px 40px 80px; }
+
+    .page-head { margin-bottom: 26px; }
+    .page-head h2 { font-size: 26px; margin: 0 0 6px; letter-spacing: -.02em; }
+    .page-head p { margin: 0; color: var(--text-dim); font-size: 14.5px; }
+
+    .view { display: none; animation: fade .28s ease; }
+    .view.active { display: block; }
+    @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    .card h3 { margin: 0 0 16px; font-size: 15px; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
+    .card h3 .tag { font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 20px; }
+
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--text-dim); margin-bottom: 7px; }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      font-family: var(--mono);
+      font-size: 13.5px;
+      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      resize: vertical;
+    }
+    textarea:focus, input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    textarea { min-height: 150px; line-height: 1.6; }
+    textarea::placeholder, input::placeholder { color: var(--text-faint); }
+    input[readonly] { color: var(--text-dim); cursor: default; }
+
+    .field { margin-bottom: 18px; }
+    .field:last-child { margin-bottom: 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+
+    button.btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-family: var(--font); font-size: 13.5px; font-weight: 600;
+      padding: 10px 18px; border-radius: var(--radius-sm);
+      border: 1px solid transparent; cursor: pointer;
+      transition: background var(--transition), border-color var(--transition), transform .06s;
+    }
+    button.btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-ghost { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+    .btn-ghost:hover { background: var(--surface-3); }
+
+    .out-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .out-head label { margin: 0; }
+    .copy-btn {
+      font-size: 12px; font-weight: 600; color: var(--text-dim);
+      background: none; border: 1px solid var(--border-strong); cursor: pointer;
+      padding: 5px 11px; border-radius: 7px; display: inline-flex; align-items: center; gap: 6px;
+      transition: all var(--transition);
+    }
+    .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+    pre.output {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.65;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 54px;
+      color: var(--text);
+    }
+    pre.output:empty::before { content: "Output will appear here…"; color: var(--text-faint); }
+
+    /* JSON syntax colors */
+    .tok-key { color: #7dd3fc; }
+    .tok-str { color: #86efac; }
+    .tok-num { color: #fca5a5; }
+    .tok-bool { color: #c4b5fd; }
+    .tok-null { color: #c4b5fd; }
+    .tok-punc { color: var(--text-faint); }
+    [data-theme="light"] .tok-key { color: #0369a1; }
+    [data-theme="light"] .tok-str { color: #15803d; }
+    [data-theme="light"] .tok-num { color: #b91c1c; }
+    [data-theme="light"] .tok-bool, [data-theme="light"] .tok-null { color: #7c3aed; }
+
+    .hint { font-size: 12.5px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; }
+    .error-text { color: #f87171; font-size: 13px; margin-top: 10px; display: none; }
+
+    /* HTML previewer split */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .split .pane { display: flex; flex-direction: column; }
+    .split textarea { flex: 1; min-height: 420px; }
+    .preview-frame {
+      flex: 1; min-height: 420px; width: 100%;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: #fff;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--surface-3); color: var(--text);
+      border: 1px solid var(--border-strong);
+      padding: 12px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 500;
+      box-shadow: var(--shadow); opacity: 0; pointer-events: none;
+      transition: opacity var(--transition), transform var(--transition); z-index: 100;
+      display: flex; align-items: center; gap: 9px;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+    .toast.error .dot { background: #f87171; }
+
+    /* Mobile */
+    .menu-btn { display: none; }
+    @media (max-width: 860px) {
+      body { flex-direction: column; }
+      .sidebar {
+        position: fixed; z-index: 50; height: 100vh; transform: translateX(-100%);
+        transition: transform var(--transition); box-shadow: var(--shadow);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .main { height: auto; }
+      .main-inner { padding: 72px 20px 60px; }
+      .grid-2, .split { grid-template-columns: 1fr; }
+      .menu-btn {
+        display: grid; place-items: center; position: fixed; top: 14px; left: 14px; z-index: 60;
+        width: 42px; height: 42px; border-radius: 10px; background: var(--surface);
+        border: 1px solid var(--border); cursor: pointer; color: var(--text);
+      }
+      .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 40; display: none; }
+      .backdrop.show { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <button class="menu-btn" id="menuBtn" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="backdrop" id="backdrop"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">🧰</div>
+      <div>
+        <h1>Devbox</h1>
+        <span>Developer utilities</span>
+      </div>
+    </div>
+
+    <div class="nav-label">Tools</div>
+    <button class="nav-item active" data-view="json">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1"/><path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2h-1"/></svg>
+      JSON Formatter
+    </button>
+    <button class="nav-item" data-view="aes">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      AES Encryption
+    </button>
+    <button class="nav-item" data-view="curl">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      cURL Formatter
+    </button>
+    <button class="nav-item" data-view="html">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      HTML Previewer
+    </button>
+
+    <div class="sidebar-footer">
+      <button class="theme-toggle" id="themeToggle">
+        <span id="themeLabel">Dark mode</span>
+        <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="main-inner">
+
+      <!-- JSON -->
+      <section class="view active" id="view-json">
+        <div class="page-head">
+          <h2>JSON Unescape & Formatter</h2>
+          <p>Strip backslashes from an escaped string and pretty-print it as structured JSON.</p>
+        </div>
+        <div class="card">
+          <div class="field">
+            <label for="jsonInput">Input string</label>
+            <textarea id="jsonInput" placeholder='Paste an escaped JSON string, e.g. {\"name\":\"value\"}'></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="removeBackslashes()">Format JSON</button>
+            <button class="btn btn-ghost" onclick="loadSampleJSON()">Load Sample</button>
+            <button class="btn btn-ghost" onclick="clearJSON()">Clear</button>
+          </div>
+          <div class="error-text" id="jsonError">Invalid JSON format — check your input.</div>
+          <div class="out-head">
+            <label>Formatted output</label>
+            <button class="copy-btn" onclick="copyFromPre('jsonOutput')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy
+            </button>
+          </div>
+          <pre class="output" id="jsonOutput"></pre>
+        </div>
+      </section>
+
+      <!-- AES -->
+      <section class="view" id="view-aes">
+        <div class="page-head">
+          <h2>AES Encryption</h2>
+          <p>Encrypt and decrypt text using AES (CBC mode, PKCS7 padding) with a configurable key and IV.</p>
+        </div>
+
+        <div class="card">
+          <h3>Cipher configuration</h3>
+          <div class="grid-2">
+            <div class="field">
+              <label for="secret_key">Secret Key</label>
+              <input type="text" id="secret_key" value="7fb9cd483db64577c28e17da1e74d20d" oninput="updateSecretKey()" />
+            </div>
+            <div class="field">
+              <label for="secret_iv">Secret IV</label>
+              <input type="text" id="secret_iv" value="66542e0ca20dbbdf" oninput="updateSecretIV()" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Encrypt <span class="tag">plain → cipher</span></h3>
+          <div class="field">
+            <label for="plain_text">Plain text</label>
+            <input type="text" id="plain_text" placeholder="Text to encrypt" />
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="encryptPlainText()">Encrypt</button>
+            <button class="btn btn-ghost" onclick="loadSampleEncrypt()">Load Sample</button>
+          </div>
+          <div class="out-head">
+            <label for="encrypted_text_output">Encrypted text</label>
+            <button class="copy-btn" onclick="copyFromInput('encrypted_text_output')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy
+            </button>
+          </div>
+          <input type="text" id="encrypted_text_output" readonly />
+        </div>
+
+        <div class="card">
+          <h3>Decrypt <span class="tag">cipher → plain</span></h3>
+          <div class="field">
+            <label for="encrypted_text">Encrypted text</label>
+            <input type="text" id="encrypted_text" placeholder="Cipher text to decrypt" />
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="decryptEncryptedText()">Decrypt</button>
+            <button class="btn btn-ghost" onclick="loadSampleDecrypt()">Load Sample</button>
+          </div>
+          <div class="out-head">
+            <label>Decrypted text</label>
+            <button class="copy-btn" onclick="copyFromPre('decrypted_text_output')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy
+            </button>
+          </div>
+          <pre class="output" id="decrypted_text_output"></pre>
+        </div>
+      </section>
+
+      <!-- cURL -->
+      <section class="view" id="view-curl">
+        <div class="page-head">
+          <h2>cURL Formatter</h2>
+          <p>Unescape a copied cURL command — converts <code>\"</code>, <code>\'</code> and <code>\\</code> back to readable characters.</p>
+        </div>
+        <div class="card">
+          <div class="field">
+            <label for="inputCurl">cURL command</label>
+            <textarea id="inputCurl" placeholder="Paste your escaped curl command here…"></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="formatCurl()">Format cURL</button>
+            <button class="btn btn-ghost" onclick="loadSampleCurl()">Load Sample</button>
+            <button class="btn btn-ghost" onclick="clearCurl()">Clear</button>
+          </div>
+          <div class="out-head">
+            <label>Formatted command</label>
+            <button class="copy-btn" onclick="copyFromPre('formattedCurl')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy
+            </button>
+          </div>
+          <pre class="output" id="formattedCurl"></pre>
+        </div>
+      </section>
+
+      <!-- HTML -->
+      <section class="view" id="view-html">
+        <div class="page-head">
+          <h2>HTML Previewer</h2>
+          <p>Type HTML on the left and see it rendered live on the right.</p>
+        </div>
+        <div class="card">
+          <div class="split">
+            <div class="pane">
+              <label for="htmlInput">HTML input</label>
+              <textarea id="htmlInput" placeholder="<h1>Hello, world!</h1>"></textarea>
+              <div class="btn-row">
+                <button class="btn btn-ghost" onclick="loadSampleHtml()">Load Sample</button>
+                <button class="btn btn-ghost" onclick="clearHtml()">Clear</button>
+              </div>
+            </div>
+            <div class="pane">
+              <label>Live preview</label>
+              <iframe id="previewFrame" class="preview-frame" title="HTML preview"></iframe>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div class="toast" id="toast"><span class="dot"></span><span id="toastMsg">Copied!</span></div>
+
+  <script>
+    /* ---------------- Navigation ---------------- */
+    const navItems = document.querySelectorAll('.nav-item');
+    const views = document.querySelectorAll('.view');
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('backdrop');
+
+    function showView(name) {
+      navItems.forEach(n => n.classList.toggle('active', n.dataset.view === name));
+      views.forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+      document.querySelector('.main').scrollTop = 0;
+      history.replaceState(null, '', '#' + name);
+      closeSidebar();
+    }
+    navItems.forEach(n => n.addEventListener('click', () => showView(n.dataset.view)));
+
+    function openSidebar() { sidebar.classList.add('open'); backdrop.classList.add('show'); }
+    function closeSidebar() { sidebar.classList.remove('open'); backdrop.classList.remove('show'); }
+    document.getElementById('menuBtn').addEventListener('click', openSidebar);
+    backdrop.addEventListener('click', closeSidebar);
+
+    // Deep-link support
+    const initial = location.hash.replace('#', '');
+    if (['json','aes','curl','html'].includes(initial)) showView(initial);
+
+    /* ---------------- Theme ---------------- */
+    const root = document.documentElement;
+    const themeLabel = document.getElementById('themeLabel');
+    function applyTheme(t) {
+      root.setAttribute('data-theme', t);
+      themeLabel.textContent = t === 'dark' ? 'Dark mode' : 'Light mode';
+      try { localStorage.setItem('devbox-theme', t); } catch (e) {}
+    }
+    try {
+      const saved = localStorage.getItem('devbox-theme');
+      if (saved) applyTheme(saved);
+    } catch (e) {}
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+
+    /* ---------------- Toast ---------------- */
+    let toastTimer;
+    function toast(msg, isError) {
+      const t = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      t.classList.toggle('error', !!isError);
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    /* ---------------- Clipboard helpers ---------------- */
+    function copyText(text) {
+      if (!text) { toast('Nothing to copy', true); return; }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard'), fallbackCopy.bind(null, text));
+      } else { fallbackCopy(text); }
+    }
+    function fallbackCopy(text) {
+      const el = document.createElement('textarea');
+      el.value = text; document.body.appendChild(el); el.select();
+      try { document.execCommand('copy'); toast('Copied to clipboard'); } catch (e) { toast('Copy failed', true); }
+      document.body.removeChild(el);
+    }
+    function copyFromPre(id) { copyText(document.getElementById(id).textContent); }
+    function copyFromInput(id) { copyText(document.getElementById(id).value); }
+
+    /* ============================================================
+       JSON Unescape & Formatter  (logic preserved)
+       ============================================================ */
+    function escapeHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function highlightJSON(json) {
+      json = escapeHtml(json);
+      return json.replace(
+        /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+        function (match) {
+          let cls = 'tok-num';
+          if (/^"/.test(match)) {
+            cls = /:$/.test(match) ? 'tok-key' : 'tok-str';
+          } else if (/true|false/.test(match)) { cls = 'tok-bool'; }
+          else if (/null/.test(match)) { cls = 'tok-null'; }
+          return '<span class="' + cls + '">' + match + '</span>';
+        }
+      ).replace(/([{}\[\],])/g, '<span class="tok-punc">$1</span>');
+    }
+    function removeBackslashes() {
+      var inputString = document.getElementById('jsonInput').value;
+      var outputString = inputString.replace(/\\/g, '');
+      var errEl = document.getElementById('jsonError');
+      try {
+        var outputJSON = JSON.parse(outputString);
+        outputJSON = JSON.stringify(outputJSON, null, 2);
+        document.getElementById('jsonOutput').innerHTML = highlightJSON(outputJSON);
+        errEl.style.display = 'none';
+      } catch (error) {
+        errEl.style.display = 'block';
+        document.getElementById('jsonOutput').textContent = '';
+        toast('Invalid JSON format', true);
+      }
+    }
+    function loadSampleJSON() {
+      var sampleJSON = "{\"glossary\":{\"title\":\"example glossary\",\"GlossDiv\":{\"title\":\"S\",\"GlossList\":{\"GlossEntry\":{\"ID\":\"SGML\",\"SortAs\":\"SGML\",\"GlossTerm\":\"Standard Generalized Markup Language\",\"Acronym\":\"SGML\",\"Abbrev\":\"ISO 8879:1986\",\"GlossDef\":{\"para\":\"A meta-markup language, used to create markup languages such as DocBook.\",\"GlossSeeAlso\":[\"GML\",\"XML\"]},\"GlossSee\":\"markup\"}}}}}";
+      document.getElementById('jsonInput').value = sampleJSON;
+    }
+    function clearJSON() {
+      document.getElementById('jsonInput').value = '';
+      document.getElementById('jsonOutput').textContent = '';
+      document.getElementById('jsonError').style.display = 'none';
+    }
+
+    /* ============================================================
+       AES Encryption  (logic preserved verbatim)
+       ============================================================ */
+    let secret_key = "7fb9cd483db64577c28e17da1e74d20d";
+    let secret_iv = "66542e0ca20dbbdf";
+
+    function AES_ENCRYPTION(string) {
+      const key = CryptoJS.enc.Utf8.parse(secret_key);
+      const iv = CryptoJS.enc.Utf8.parse(secret_iv);
+      const encrypted = CryptoJS.AES.encrypt(string, key, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+      });
+      return encrypted.toString();
+    }
+
+    function AES_DECRYPTION(string) {
+      string = string.replace(/\\/g, '');
+      const key = CryptoJS.enc.Utf8.parse(secret_key);
+      const iv = CryptoJS.enc.Utf8.parse(secret_iv);
+      const decrypted = CryptoJS.AES.decrypt(string, key, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+      });
+      const base64String = CryptoJS.enc.Base64.stringify(decrypted);
+      const decryptedText = CryptoJS.enc.Utf8.stringify(CryptoJS.enc.Base64.parse(base64String));
+      return decryptedText;
+    }
+
+    function encryptPlainText() {
+      const plain_text = document.getElementById('plain_text').value;
+      const encrypted_text = AES_ENCRYPTION(plain_text);
+      document.getElementById('encrypted_text_output').value = encrypted_text;
+    }
+
+    function decryptEncryptedText() {
+      const encrypted_text = document.getElementById('encrypted_text').value;
+      const decrypted_text = AES_DECRYPTION(encrypted_text);
+      document.getElementById('decrypted_text_output').textContent = decrypted_text;
+    }
+
+    function updateSecretKey() { secret_key = document.getElementById('secret_key').value; }
+    function updateSecretIV() { secret_iv = document.getElementById('secret_iv').value; }
+
+    function loadSampleEncrypt() {
+      // Reset key/IV to defaults so the demo is reproducible, then encrypt sample text.
+      document.getElementById('secret_key').value = "7fb9cd483db64577c28e17da1e74d20d";
+      document.getElementById('secret_iv').value = "66542e0ca20dbbdf";
+      updateSecretKey(); updateSecretIV();
+      document.getElementById('plain_text').value = "hello smallcase";
+      encryptPlainText();
+    }
+    function loadSampleDecrypt() {
+      // Cipher for "hello smallcase" under the default key/IV.
+      document.getElementById('secret_key').value = "7fb9cd483db64577c28e17da1e74d20d";
+      document.getElementById('secret_iv').value = "66542e0ca20dbbdf";
+      updateSecretKey(); updateSecretIV();
+      document.getElementById('encrypted_text').value = "WNFRl/QUSSc+Ek6j90HuSQ==";
+      decryptEncryptedText();
+    }
+
+    /* ============================================================
+       cURL Formatter  (logic preserved verbatim)
+       ============================================================ */
+    function formatCurl() {
+      var inputCurl = document.getElementById('inputCurl').value.trim();
+      var formattedCurl = inputCurl.replace(/\\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, "\\");
+      document.getElementById('formattedCurl').textContent = formattedCurl;
+    }
+    function loadSampleCurl() {
+      var sample = 'curl -X POST \\"https://api.example.com/v1/orders\\" ' +
+        '-H \\"Content-Type: application/json\\" ' +
+        '-d \\"{\\\\"symbol\\\\":\\\\"INFY\\\\",\\\\"qty\\\\":10}\\"';
+      document.getElementById('inputCurl').value = sample;
+      formatCurl();
+    }
+    function clearCurl() {
+      document.getElementById('inputCurl').value = '';
+      document.getElementById('formattedCurl').textContent = '';
+    }
+
+    /* ============================================================
+       HTML Previewer  (logic preserved verbatim)
+       ============================================================ */
+    const htmlInput = document.getElementById('htmlInput');
+    const previewFrame = document.getElementById('previewFrame');
+    htmlInput.addEventListener('input', updatePreview);
+    function updatePreview() {
+      const htmlCode = htmlInput.value;
+      const doc = previewFrame.contentWindow.document;
+      doc.open();
+      doc.write(htmlCode);
+      doc.close();
+    }
+    function loadSampleHtml() {
+      htmlInput.value =
+'<!DOCTYPE html>\n' +
+'<html>\n' +
+'  <body style="font-family: system-ui; margin: 0; padding: 24px;\n' +
+'               background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff;">\n' +
+'    <h1 style="margin: 0 0 8px;">Hello from Devbox 👋</h1>\n' +
+'    <p style="opacity: .9;">Edit the HTML on the left — this preview updates live.</p>\n' +
+'    <button style="margin-top: 12px; padding: 10px 16px; border: none;\n' +
+'                   border-radius: 8px; font-weight: 600; cursor: pointer;"\n' +
+'            onclick="alert(\'It works!\')">Click me</button>\n' +
+'  </body>\n' +
+'</html>';
+      updatePreview();
+    }
+    function clearHtml() {
+      htmlInput.value = '';
+      updatePreview();
+    }
+  </script>
+</body>
+</html>
