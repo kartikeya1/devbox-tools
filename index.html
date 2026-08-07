@@ -227,7 +227,7 @@
       min-height: 54px;
       color: var(--text);
     }
-    pre.output:empty::before { content: "Output will appear here…"; color: var(--text-faint); }
+    pre.output:empty::before { content: "Output will appear here..."; color: var(--text-faint); }
 
     /* JSON syntax colors */
     .tok-key { color: #7dd3fc; }
@@ -411,7 +411,7 @@
             <button class="btn btn-ghost" onclick="loadSampleJSON()">Load Sample</button>
             <button class="btn btn-ghost" onclick="clearJSON()">Clear</button>
           </div>
-          <div class="error-text" id="jsonError">Invalid JSON format — check your input.</div>
+          <div class="error-text" id="jsonError">Invalid JSON format - check your input.</div>
           <div class="out-head">
             <label>Formatted output</label>
             <button class="copy-btn" onclick="copyFromPre('jsonOutput')">
@@ -489,12 +489,12 @@
       <section class="view" id="view-curl">
         <div class="page-head">
           <h2>cURL Formatter</h2>
-          <p>Unescape a copied cURL command — converts <code>\"</code>, <code>\'</code> and <code>\\</code> back to readable characters.</p>
+          <p>Unescape a copied cURL command - converts <code>\"</code>, <code>\'</code> and <code>\\</code> back to readable characters.</p>
         </div>
         <div class="card">
           <div class="field">
             <label for="inputCurl">cURL command</label>
-            <textarea id="inputCurl" placeholder="Paste your escaped curl command here…"></textarea>
+            <textarea id="inputCurl" placeholder="Paste your escaped curl command here..."></textarea>
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="formatCurl()">Format cURL</button>
@@ -540,7 +540,7 @@
       <section class="view" id="view-jwt">
         <div class="page-head">
           <h2>JWT Maker</h2>
-          <p>Generate and sign JSON Web Tokens (HS256 / HS384 / HS512) entirely in your browser using the Web Crypto API — no data leaves the page.</p>
+          <p>Generate and sign JSON Web Tokens (HS256 / HS384 / HS512) entirely in your browser using the Web Crypto API - no data leaves the page.</p>
         </div>
 
         <div class="card">
@@ -586,7 +586,7 @@
           <div class="field">
             <label for="jwtSecret">Secret key</label>
             <input type="password" id="jwtSecret" placeholder="Enter a secure secret (32+ chars recommended)" value="super-secret-key-for-jwt-signing!" />
-            <p class="hint">Signing happens locally in your browser — the secret never leaves the page. Never share it publicly.</p>
+            <p class="hint">Signing happens locally in your browser - the secret never leaves the page. Never share it publicly.</p>
           </div>
         </div>
 
@@ -852,7 +852,7 @@
 '  <body style="font-family: system-ui; margin: 0; padding: 24px;\n' +
 '               background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff;">\n' +
 '    <h1 style="margin: 0 0 8px;">Hello from Devbox 👋</h1>\n' +
-'    <p style="opacity: .9;">Edit the HTML on the left — this preview updates live.</p>\n' +
+'    <p style="opacity: .9;">Edit the HTML on the left - this preview updates live.</p>\n' +
 '    <button style="margin-top: 12px; padding: 10px 16px; border: none;\n' +
 '                   border-radius: 8px; font-weight: 600; cursor: pointer;"\n' +
 '            onclick="alert(\'It works!\')">Click me</button>\n' +
@@ -1008,7 +1008,7 @@
       generateJWT();
     }
 
-    // Self-check suite (ported verbatim) — proves the crypto path end to end.
+    // Self-check suite (ported verbatim) - proves the crypto path end to end.
     const jwtTestCases = [
       { name: 'Parse YYYY-MM-DD HH:MM:SS format', detail: '2026-12-31 23:59:59', test: async () => {
           const r = parseExpiration('2026-12-31 23:59:59'); const d = new Date(r * 1000);
