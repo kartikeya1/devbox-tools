@@ -1,7 +1,7 @@
-# 🧰 Devbox — Developer Utilities
+# 🧰 Devbox - Developer Utilities
 
 A fast, zero-build, offline-friendly toolkit that bundles five everyday developer tools into a
-single polished single-page app. Everything lives in one static [`index.html`](index.html) —
+single polished single-page app. Everything lives in one static [`index.html`](index.html) -
 open it in a browser and it just works. A companion command-line JWT generator lives in
 [`cli/`](cli/).
 
@@ -29,12 +29,12 @@ open it in a browser and it just works. A companion command-line JWT generator l
 
 ## Overview
 
-Devbox is a collection of small, self-contained utilities that developers reach for constantly —
+Devbox is a collection of small, self-contained utilities that developers reach for constantly -
 cleaning up escaped JSON, encrypting/decrypting values, un-mangling copied cURL commands,
 previewing HTML, and minting signed JWTs. They are combined into a single responsive interface
 with a sidebar, dark/light theming, deep-linkable tabs, and one-click copy.
 
-There is **no build step** and **no backend** — all processing happens locally in your browser.
+There is **no build step** and **no backend** - all processing happens locally in your browser.
 
 <br>
 
@@ -53,7 +53,7 @@ python3 -m http.server 4321
 # visit http://localhost:4321
 ```
 
-Each tool is deep-linkable — jump straight to one with a URL hash:
+Each tool is deep-linkable - jump straight to one with a URL hash:
 
 | Tool | URL |
 |------|-----|
@@ -100,7 +100,7 @@ Encrypt and decrypt text with **AES (CBC mode, PKCS7 padding)** using a configur
 3. Under **Decrypt**, paste cipher text → **Decrypt** → read the plain text.
 
 > ⚠️ The default key/IV are baked into the client for convenience. This tool is meant for
-> interoperating with existing internal payloads — it is **not** a substitute for proper key
+> interoperating with existing internal payloads - it is **not** a substitute for proper key
 > management. Don't treat client-side values as secret.
 
 <br>
@@ -131,7 +131,7 @@ Converts escape sequences back into readable characters:
 A live, side-by-side HTML editor and renderer.
 
 **What it does**
-- Renders whatever you type into a sandboxed `<iframe>` in real time — no button needed.
+- Renders whatever you type into a sandboxed `<iframe>` in real time - no button needed.
 
 **How to use**
 - Type or paste HTML on the left; the preview updates on the right as you type.
@@ -141,12 +141,12 @@ A live, side-by-side HTML editor and renderer.
 ### 5. JWT Maker
 
 Generate and sign **JSON Web Tokens** (HS256 / HS384 / HS512) entirely in the browser using the
-**Web Crypto API** — no dependency, no network call, nothing leaves the page.
+**Web Crypto API** - no dependency, no network call, nothing leaves the page.
 
 **What it does**
 - **Header:** choose the signing algorithm (HS256/384/512) and token type (`typ`, default `JWT`).
 - **Payload:** set the `broker` claim, an optional `iat` (issued-at; defaults to *now*) and an
-  `exp` (expiration). Both `iat` and `exp` accept human-readable dates or Unix timestamps —
+  `exp` (expiration). Both `iat` and `exp` accept human-readable dates or Unix timestamps -
   see the [supported formats](#supported-date-formats).
 - **Secret:** the HMAC key used to sign the token.
 - **Generate** produces the token, shows its three colour-coded segments
@@ -166,18 +166,18 @@ Generate and sign **JSON Web Tokens** (HS256 / HS384 / HS512) entirely in the br
 
 ## App features
 
-- 🎬 **Load Sample everywhere** — every tool ships a **Load Sample** button that fills in a working example and runs it, so anyone can see the functionality instantly.
-- 🌗 **Dark / light theme** — toggled from the sidebar, remembered across visits via `localStorage`.
-- 📋 **One-click copy** — every output has a copy button with toast confirmation.
-- 🔗 **Deep-linkable tabs** — `#json`, `#aes`, `#curl`, `#html`, `#jwt`.
-- 📱 **Responsive** — collapsible sidebar with a hamburger menu on mobile.
-- ⚡ **Zero build** — a single static HTML file, works offline (except the AES tool's CDN dependency).
+- 🎬 **Load Sample everywhere** - every tool ships a **Load Sample** button that fills in a working example and runs it, so anyone can see the functionality instantly.
+- 🌗 **Dark / light theme** - toggled from the sidebar, remembered across visits via `localStorage`.
+- 📋 **One-click copy** - every output has a copy button with toast confirmation.
+- 🔗 **Deep-linkable tabs** - `#json`, `#aes`, `#curl`, `#html`, `#jwt`.
+- 📱 **Responsive** - collapsible sidebar with a hamburger menu on mobile.
+- ⚡ **Zero build** - a single static HTML file, works offline (except the AES tool's CDN dependency).
 
 <br>
 
 ## Command-line JWT tool (`cli/`)
 
-The browser JWT Maker has a sibling Python CLI in [`cli/create_jwt.py`](cli/create_jwt.py) — handy
+The browser JWT Maker has a sibling Python CLI in [`cli/create_jwt.py`](cli/create_jwt.py) - handy
 for scripting or terminal-only workflows. It produces the same kind of token the web tool does.
 
 ### Installation
@@ -197,9 +197,9 @@ python create_jwt.py
 
 The script interactively prompts you for:
 
-**Header** — Algorithm (`HS256`/`HS384`/`HS512`, default `HS256`) and Type (default `JWT`).
-**Payload** — Broker name (required), Issued At (`iat`, defaults to current time), Expiration (`exp`, required).
-**Secret** — the signing key.
+**Header** - Algorithm (`HS256`/`HS384`/`HS512`, default `HS256`) and Type (default `JWT`).
+**Payload** - Broker name (required), Issued At (`iat`, defaults to current time), Expiration (`exp`, required).
+**Secret** - the signing key.
 
 ### Supported date formats
 
@@ -252,9 +252,9 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### Token structure
 
 A JWT has three dot-separated parts: `header.payload.signature`.
-- **Header** — the algorithm and token type.
-- **Payload** — your claims (`broker`, `iat`, `exp`).
-- **Signature** — cryptographic signature using your secret.
+- **Header** - the algorithm and token type.
+- **Payload** - your claims (`broker`, `iat`, `exp`).
+- **Signature** - cryptographic signature using your secret.
 
 ### Security notes
 
@@ -286,12 +286,12 @@ The web app is a single static file organised as a small SPA:
 
 - **Sidebar navigation** toggles one `.view` section per tool; the active view is reflected in the
   URL hash so tabs are deep-linkable and shareable.
-- **Shared primitives** — `.card`, `.field`, `.btn`, `pre.output`, the `toast()` notifier and the
-  `copyText()`/`highlightJSON()` helpers — are reused by every tool, so tools stay consistent and
+- **Shared primitives** - `.card`, `.field`, `.btn`, `pre.output`, the `toast()` notifier and the
+  `copyText()`/`highlightJSON()` helpers - are reused by every tool, so tools stay consistent and
   new ones are cheap to add.
 - **Theming** is driven by CSS custom properties on `[data-theme]`, persisted in `localStorage`.
 - Each tool's logic is an isolated block of vanilla JS. The JWT tool uses the browser-native
-  **Web Crypto API** (`crypto.subtle`) for HMAC signing — no library required.
+  **Web Crypto API** (`crypto.subtle`) for HMAC signing - no library required.
 
 <br>
 
@@ -306,9 +306,9 @@ This is a static site, so hosting is trivial.
 4. Deploy. That's it.
 
 `vercel.json` already pins `framework: null` and `outputDirectory: "."`. The Python `cli/` folder
-is not part of the deployed site — it's a local developer tool.
+is not part of the deployed site - it's a local developer tool.
 
-Any static host (GitHub Pages, Netlify, S3, Cloudflare Pages) works the same way — just serve `index.html`.
+Any static host (GitHub Pages, Netlify, S3, Cloudflare Pages) works the same way - just serve `index.html`.
 
 <br>
 
@@ -317,12 +317,12 @@ Any static host (GitHub Pages, Netlify, S3, Cloudflare Pages) works the same way
 Because every tool reuses the same primitives, adding one is a four-step pattern (mirror any
 existing tool, e.g. the JWT Maker):
 
-1. **Sidebar** — add a `<button class="nav-item" data-view="mytool">` with an inline SVG icon.
-2. **View** — add a `<section class="view" id="view-mytool">` built from `.card`/`.field`/`.btn`/
+1. **Sidebar** - add a `<button class="nav-item" data-view="mytool">` with an inline SVG icon.
+2. **View** - add a `<section class="view" id="view-mytool">` built from `.card`/`.field`/`.btn`/
    `pre.output`. Give buttons `onclick` handlers and a **Load Sample** button.
-3. **Logic** — add your functions in the `<script>`; reuse `toast()`, `copyText()` and
+3. **Logic** - add your functions in the `<script>`; reuse `toast()`, `copyText()` and
    `highlightJSON()` rather than re-implementing them.
-4. **Deep link** — add `'mytool'` to the whitelist array in the deep-link check near the top of
+4. **Deep link** - add `'mytool'` to the whitelist array in the deep-link check near the top of
    the script.
 
 No build config changes are needed.
@@ -331,10 +331,10 @@ No build config changes are needed.
 
 ## Tech & dependencies
 
-- **Vanilla HTML / CSS / JavaScript** — no framework, no bundler.
-- **[CryptoJS 4.0.0](https://cdnjs.com/libraries/crypto-js)** (via CDN) — used solely by the AES tool.
-- **Web Crypto API** (browser-native) — used by the JWT Maker; no dependency.
-- **Python + [PyJWT](https://pyjwt.readthedocs.io/)** — only for the optional `cli/` tool.
+- **Vanilla HTML / CSS / JavaScript** - no framework, no bundler.
+- **[CryptoJS 4.0.0](https://cdnjs.com/libraries/crypto-js)** (via CDN) - used solely by the AES tool.
+- **Web Crypto API** (browser-native) - used by the JWT Maker; no dependency.
+- **Python + [PyJWT](https://pyjwt.readthedocs.io/)** - only for the optional `cli/` tool.
 
-All other functionality — JSON parsing/highlighting, cURL unescaping, HTML preview, theming,
-clipboard — is self-contained with no third-party code.
+All other functionality - JSON parsing/highlighting, cURL unescaping, HTML preview, theming,
+clipboard - is self-contained with no third-party code.
